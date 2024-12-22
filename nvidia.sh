@@ -69,4 +69,23 @@ case $br_option in
 		;;
 esac
 
-sudo sh ./XXXXXX.run -s --module-signing-secret-key=/home/$USER/tempnvd/nvidia.key --module-signing-public-key=/home/$USER/tempnvd/nvidia.der
+sudo sh ./*.run -s --module-signing-secret-key=/home/$USER/tempnvd/nvidia.key --module-signing-public-key=/home/$USER/tempnvd/nvidia.der
+
+# supergfxctl
+
+## remove xorg NVIDIA-only cfg for hybrid
+rm -rf /etc/X11/xorg.conf
+
+sudo apt update && sudo apt install curl git build-essential # some are still missing. Will add later
+
+## Installing Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+
+## supergfxctl
+git clone https://gitlab.com/asus-linux/supergfxctl.git
+cd supergfxctl
+make && sudo make install
+
+sudo systemctl enable supergfxd.service --now
+sudo usermod -a -G users $USER
