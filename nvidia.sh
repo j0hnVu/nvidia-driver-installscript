@@ -69,3 +69,4 @@ case $br_option in
 		;;
 esac
 
+sudo sh ./XXXXXX.run -s --module-signing-secret-key=/home/$USER/tempnvd/nvidia.key --module-signing-public-key=/home/$USER/tempnvd/nvidia.der
