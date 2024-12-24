@@ -1,6 +1,6 @@
 # NVIDIA Proprietary Driver Installation with Secure Boot for Debian
 
-These scripts automate the NVIDIA Proprietary Driver Installation Process with Secure Boot for Debian-based distro. The scripts will handle the process of generating keys, enrolling them with MOK (Machine Owner Key), and configuring the system to disable the Nouveau driver, which conflicts with the proprietary NVIDIA drivers.
+These scripts automate the NVIDIA Proprietary Driver Installation Process with Secure Boot for Debian-based distro. The scripts will handle the process of generating keys, enrolling them with MOK (Machine Owner Key), and configuring the system to disable the Nouveau driver, and installing supergfxctl if the user requests.
 
 *Reasons for the script because I reinstall Debian way too often*
 
