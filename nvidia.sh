@@ -1,5 +1,5 @@
 # Prequisite
-sudo apt install linux-headers-$(uname -r) pkg-config # Missing quite a few prequisite packages here
+sudo apt install linux-headers-$(uname -r) pkg-config build-essential curl wget livglvnd-dev libudev-dev # Missing quite a few prequisite packages here
 
 # NVIDIA driver
 echo "Which branch? (1, 2, 3)"
@@ -69,14 +69,12 @@ case $br_option in
 		;;
 esac
 
-sudo sh ./*.run -s --module-signing-secret-key=/home/$USER/tempnvd/nvidia.key --module-signing-public-key=/home/$USER/tempnvd/nvidia.der
+sudo sh ./*.run --module-signing-secret-key=/home/$USER/tempnvd/nvidia.key --module-signing-public-key=/home/$USER/tempnvd/nvidia.der
 
 # supergfxctl
 
 ## remove xorg NVIDIA-only cfg for hybrid
 rm -rf /etc/X11/xorg.conf
-
-sudo apt update && sudo apt install curl git build-essential # some are still missing. Will add later
 
 ## Installing Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
