@@ -1,5 +1,7 @@
+#!/bin/bash
+
 # Prequisite
-sudo apt install linux-headers-$(uname -r) pkg-config build-essential curl wget livglvnd-dev libudev-dev # Missing quite a few prequisite packages here
+sudo apt install linux-headers-$(uname -r) pkg-config build-essential curl wget # Missing quite a few prequisite packages here
 
 # NVIDIA driver
 echo "Which branch? (1, 2, 3)"
@@ -19,13 +21,13 @@ case $br_option in
 		read ver_option
 		case $ver_option in
 			1)
-				curl -O https://us.download.nvidia.com/XFree86/Linux-x86_64/550.142/NVIDIA-Linux-x86_64-550.142.run
+				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/550.142/NVIDIA-Linux-x86_64-550.142.run
 				;;
 			2)
-				curl -O https://us.download.nvidia.com/XFree86/Linux-x86_64/535.216.01/NVIDIA-Linux-x86_64-535.216.01.run
+				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/535.216.01/NVIDIA-Linux-x86_64-535.216.01.run
 				;;
 			3)
-				curl -O https://us.download.nvidia.com/XFree86/Linux-x86_64/470.256.02/NVIDIA-Linux-x86_64-470.256.02.run
+				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/470.256.02/NVIDIA-Linux-x86_64-470.256.02.run
 				;;
 		esac
 		;;
@@ -38,13 +40,13 @@ case $br_option in
 		read ver_option
 		case $ver_option in
 			1)
-				curl -O https://us.download.nvidia.com/XFree86/Linux-x86_64/565.77/NVIDIA-Linux-x86_64-565.77.run
+				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/565.77/NVIDIA-Linux-x86_64-565.77.run
 				;;
 			2)
-				curl -O https://us.download.nvidia.com/XFree86/Linux-x86_64/560.35.03/NVIDIA-Linux-x86_64-560.35.03.run
+				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/560.35.03/NVIDIA-Linux-x86_64-560.35.03.run
 				;;
 			3)
-				curl -O https://us.download.nvidia.com/XFree86/Linux-x86_64/555.58.02/NVIDIA-Linux-x86_64-555.58.02.run
+				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/555.58.02/NVIDIA-Linux-x86_64-555.58.02.run
 				;;
 		esac
 		;;
@@ -57,13 +59,13 @@ case $br_option in
 		read ver_option
 		case $ver_option in
 			1)
-				curl -O https://us.download.nvidia.com/XFree86/Linux-x86_64/565.57.01/NVIDIA-Linux-x86_64-565.57.01.run
+				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/565.57.01/NVIDIA-Linux-x86_64-565.57.01.run
 				;;
 			2)
-				curl -O https://us.download.nvidia.com/XFree86/Linux-x86_64/560.31.02/NVIDIA-Linux-x86_64-560.31.02.run
+				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/560.31.02/NVIDIA-Linux-x86_64-560.31.02.run
 				;;
 			3)
-				curl -O https://us.download.nvidia.com/XFree86/Linux-x86_64/555.52.04/NVIDIA-Linux-x86_64-555.52.04.run
+				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/555.52.04/NVIDIA-Linux-x86_64-555.52.04.run
 				;;
 		esac
 		;;
@@ -72,18 +74,25 @@ esac
 sudo sh ./*.run --module-signing-secret-key=/home/$USER/tempnvd/nvidia.key --module-signing-public-key=/home/$USER/tempnvd/nvidia.der
 
 # supergfxctl
+clear
+echo "Installing supergfxctl? (For Optimus Laptop) (y/n)"
+read supergfxctl_option
+if [ "$supergfxctl_option"="y" ]; then
+	## remove xorg NVIDIA-only cfg for hybrid
+	sudo apt install livglvnd-dev libudev-dev 
+	rm -rf /etc/X11/xorg.conf
 
-## remove xorg NVIDIA-only cfg for hybrid
-rm -rf /etc/X11/xorg.conf
+	## Installing Rust
+	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+	source ~/.cargo/env
 
-## Installing Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source ~/.cargo/env
+	## supergfxctl
+	git clone https://gitlab.com/asus-linux/supergfxctl.git
+	cd supergfxctl
+	make && sudo make install
 
-## supergfxctl
-git clone https://gitlab.com/asus-linux/supergfxctl.git
-cd supergfxctl
-make && sudo make install
-
-sudo systemctl enable supergfxd.service --now
-sudo usermod -a -G users $USER
+	sudo systemctl enable supergfxd.service --now
+	sudo usermod -a -G users $USER
+else
+	echo "Won't install supergfxctl"
+fi
