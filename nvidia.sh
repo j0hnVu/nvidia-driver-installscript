@@ -73,6 +73,12 @@ esac
 
 sudo sh ./*.run --module-signing-secret-key=/home/$USER/tempnvd/nvidia.key --module-signing-public-key=/home/$USER/tempnvd/nvidia.der
 
+# Enable nvidia-resume.service
+## Fix for graphics tearing after wake from sleep on KDE Plasma
+sudo touch /etc/modprobe.d/nvidia-power-management.conf >> /dev/null
+echo "options nvidia NVreg_PreserveVideoMemoryAllocations=1 NVreg_TemporaryFilePath=/var/tmp" >> sudo tee -a /etc/modprobe.d/nvidia-power-management.conf
+sudo systemctl enable nvidia-suspend.server nvidia-hibernate.service nvidia-resume.service
+
 # supergfxctl
 clear
 echo "Installing supergfxctl? (For Optimus Laptop) (y/n)"
