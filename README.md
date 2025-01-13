@@ -13,13 +13,13 @@ These scripts automate the NVIDIA Proprietary Driver Installation Process with S
 - **Secure Boot** enabled in the BIOS/UEFI settings & Can use MOK Manager to import key
 
 ## How to Use
+- It's recommended that you switch to Terminal view by pressing **CTRL + ALT + F2** to avoid any unexpected issue
 
 ```
 git clone https://github.com/j0hnVu/nvidia-prop-driver-autoscript.git
 cd nvidia-prop-driver-autoscript
 
-chmod +x secureboot.sh
-chmod +x nvidia.sh
+chmod +x secureboot.sh nvidia.sh
 
 ./secureboot.sh
 ```
