@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Prequisite
-sudo apt install linux-headers-$(uname -r) pkg-config build-essential curl wget # Missing quite a few prequisite packages here
+sudo apt install linux-headers-$(uname -r) pkg-config build-essential curl wget libglvnd-dev # Missing quite a few prequisite packages here
 
 # NVIDIA driver
 echo "Which branch? (1, 2, 3)"
@@ -85,7 +85,7 @@ echo "Installing supergfxctl? (For Optimus Laptop) (y/n)"
 read supergfxctl_option
 if [ "$supergfxctl_option"="y" ]; then
 	## remove xorg NVIDIA-only cfg for hybrid
-	sudo apt install livglvnd-dev libudev-dev 
+	sudo apt install libudev-dev 
 	rm -rf /etc/X11/xorg.conf
 
 	## Installing Rust
