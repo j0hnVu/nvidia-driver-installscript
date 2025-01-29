@@ -1,120 +1,110 @@
 #!/bin/bash
 
-# Prequisite
-sudo apt install linux-headers-$(uname -r) pkg-config build-essential curl wget libglvnd-dev awk
+# Non-free for nvidia-detect
+codename=$(grep VERSION_CODENAME /etc/os-release | cut -d'=' -f2)
+if ! grep -Eq "(^|[[:space:]])non-free($|[[:space:]])" /etc/apt/sources.list; then
+	echo "deb http://deb.debian.org/debian/ $codename non-free" | sudo tee -a /etc/apt/sources.list
+fi
+# Prerequisite
+sudo apt update
+sudo apt install -y linux-headers-$(uname -r) pkg-config build-essential curl wget libglvnd-dev awk
 
-installNvidiaDriver(){
-	sudo sh ./*.run --module-signing-secret-key=/home/$USER/tempnvd/nvidia.key --module-signing-public-key=/home/$USER/tempnvd/nvidia.der
+# Variables
+ver=""
 
-	# TO-DO: modeset=1 fbdev=1
+getVer() {
+    versions=$(curl -s "https://download.nvidia.com/XFree86/Linux-x86_64/" | grep -oE "href='[0-9]+\.[0-9]+(\.[0-9]+)?\/'" | sed "s/href='\(.*\)\/'/\1/" | sort -V)
+    recommended=$(curl -s "https://download.nvidia.com/XFree86/Linux-x86_64/latest.txt" | awk '{print $1}')
+    latest=$(echo "$versions" | tail -n 1)
 
-	# Enable nvidia-resume.service
-	## Fix for graphics tearing after wake from sleep on KDE Plasma
-	sudo touch /etc/modprobe.d/nvidia-power-management.conf >> /dev/null
-	echo "options nvidia NVreg_PreserveVideoMemoryAllocations=1 NVreg_TemporaryFilePath=/var/tmp" >> sudo tee -a /etc/modprobe.d/nvidia-power-management.conf
-	echo "options nvidia NVreg_DynamicPowerManagement=0x02" >> sudo tee -a /etc/modprobe.d/nvidia-power-management.conf
-	sudo systemctl enable nvidia-suspend.server nvidia-hibernate.service nvidia-resume.service
+    if nvidia-detect | grep -q "all driver versions"; then
+        echo "Recommended version: $recommended"
+        echo "Latest version: $latest"
+    fi
 
-	#nvidia-drm modeset=1 fbdev=1
-	sudo touch /etc/modprobe.d/nvidia.conf >> /dev/null
-	echo "options nvidia-drm modeset=1 fbdev=1" >> sudo tee -a /etc/modprobe.d/nvidia.conf
-	sudo update-initramfs -u
-
-
+    echo "Select version:"
+    echo "1. Latest ($latest)"
+    echo "2. Recommended ($recommended)"
+    echo "3. Other"
+    read -p "Option: " ver_opt
+    case "$ver_opt" in
+        1)
+            ver=$latest
+            ;;
+        2)
+            ver=$recommended
+            ;;
+        3)
+            echo "Enter version:"
+            read -p "Version (e.g., 525.78.01): " ver
+            ;;
+        *)
+            echo "Invalid option. Exiting."
+            exit 1
+            ;;
+    esac
 }
 
-# supergfxctl
-installSupergfxctl(){
-	echo "Installing supergfxctl (For Optimus Laptop)" && sleep 2
-	sudo apt install libudev-dev 
-
-	## remove xorg NVIDIA-only cfg for hybrid
-	sudo rm -rf /etc/X11/xorg.conf
-
-	## Installing Rust
-	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-	source ~/.cargo/env
-
-	## supergfxctl
-	git clone https://gitlab.com/asus-linux/supergfxctl.git
-	cd supergfxctl
-	make && sudo make install
-
-	sudo systemctl enable supergfxd.service --now
-	sudo usermod -a -G users $USER
+downloader() {
+    local ver=$1
+    url="https://us.download.nvidia.com/XFree86/Linux-x86_64/$ver/NVIDIA-Linux-x86_64-$ver.run"
+    wget -nc "$url"
 }
 
-getVer(){
-	versions=$(curl -s "https://download.nvidia.com/XFree86/Linux-x86_64/" | grep -oE "href='[0-9]+\.[0-9]+(?:\.[0-9]+)?\/'" | sed "s/href='\(.*\)\/'/\1/" | sort -V)
-	recommended=$(curl -s "https://download.nvidia.com/XFree86/Linux-x86_64/latest.txt" | awk '{print $1}')
+installNvidiaDriver() {
+    mkdir -p /home/$USER/tempnvd
+    sudo sh ./*"$ver"*.run --module-signing-secret-key=/home/$USER/tempnvd/nvidia.key --module-signing-public-key=/home/$USER/tempnvd/nvidia.der
+
+    # Enable nvidia-resume.service
+    echo "options nvidia NVreg_PreserveVideoMemoryAllocations=1 NVreg_TemporaryFilePath=/var/tmp" | sudo tee -a /etc/modprobe.d/nvidia-power-management.conf
+    echo "options nvidia NVreg_DynamicPowerManagement=0x02" | sudo tee -a /etc/modprobe.d/nvidia-power-management.conf
+    sudo systemctl enable nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
+
+    # NVIDIA DRM Modeset
+    echo "options nvidia-drm modeset=1 fbdev=1" | sudo tee -a /etc/modprobe.d/nvidia.conf
+    sudo update-initramfs -u
 }
 
-# NVIDIA driver
-echo "Which branch? (1, 2, 3)"
-echo "1. Recommended"
-echo "2. New Feature"
-echo "3. Beta"
-printf "Option: "
-read br_option
+installSupergfxctl() {
+    echo "Installing supergfxctl (For Optimus Laptop)" && sleep 2
+    sudo apt install -y libudev-dev
 
-case $br_option in
-	1)
-		echo "Which version? (1, 2, 3)"
-		echo "1. 550.142"
-		echo "2. 535.216"
-		echo "3. 470.256"
-		printf "Option: "
-		read ver_option
-		case $ver_option in
-			1)
-				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/550.142/NVIDIA-Linux-x86_64-550.142.run
-				;;
-			2)
-				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/535.216.01/NVIDIA-Linux-x86_64-535.216.01.run
-				;;
-			3)
-				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/470.256.02/NVIDIA-Linux-x86_64-470.256.02.run
-				;;
-		esac
-		;;
-	2)
-		echo "Which version? (1, 2, 3)"
-		echo "1. 565.77"
-		echo "2. 560.35"
-		echo "3. 555.58"
-		printf "Option: "
-		read ver_option
-		case $ver_option in
-			1)
-				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/565.77/NVIDIA-Linux-x86_64-565.77.run
-				;;
-			2)
-				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/560.35.03/NVIDIA-Linux-x86_64-560.35.03.run
-				;;
-			3)
-				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/555.58.02/NVIDIA-Linux-x86_64-555.58.02.run
-				;;
-		esac
-		;;
-	3)
-		echo "Which version? (1, 2, 3)"
-		echo "1. 565.57"
-		echo "2. 560.31"
-		echo "3. 555.42"
-		printf "Option: "
-		read ver_option
-		case $ver_option in
-			1)
-				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/565.57.01/NVIDIA-Linux-x86_64-565.57.01.run
-				;;
-			2)
-				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/560.31.02/NVIDIA-Linux-x86_64-560.31.02.run
-				;;
-			3)
-				wget -nc https://us.download.nvidia.com/XFree86/Linux-x86_64/555.52.04/NVIDIA-Linux-x86_64-555.52.04.run
-				;;
-		esac
-		;;
-esac
+    # Remove Xorg NVIDIA-only config
+    sudo rm -rf /etc/X11/xorg.conf
 
+    # Install Rust
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    source "$HOME/.cargo/env"
 
+    # Clone and install supergfxctl
+    git clone https://gitlab.com/asus-linux/supergfxctl.git
+    cd supergfxctl || exit
+    make && sudo make install
+    cd .. || exit
+
+    sudo systemctl enable supergfxd.service --now
+    sudo usermod -aG users "$USER"
+}
+
+# Main Execution
+clear
+getVer
+downloader "$ver"
+installNvidiaDriver
+
+if xrandr --listproviders | grep -q "Providers: number : 2"; then
+    echo "2 GPUs detected. Possible Optimus Laptop."
+    read -p "Do you want to install supergfxctl? (y/n): " ans
+    case "$ans" in
+        [yY]*)
+            installSupergfxctl
+            ;;
+        [nN]*)
+            echo "Supergfxctl installation skipped."
+            ;;
+        *)
+            echo "Invalid response. Exiting."
+            exit 
+            ;;
+    esac
+fi
